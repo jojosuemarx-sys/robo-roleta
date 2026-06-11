@@ -11,7 +11,7 @@ TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
 CHAT_ID = "-1003769604348"
 VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
 
-# === URL LIVE ATUALIZADA ENVIADA AGORA ===
+# === URL LIVE DO WEBSOCKET ===
 WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22ilw4hgyebjfkxedafc60e9716d2ed9d93c9a2b035e6371002b918452e7b50&instance=brgxgz-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73611.62580-5bb4093ee3-r2"
 
 ultimo_historico_analisado = []
@@ -21,7 +21,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "🤖 O Analista Assertivo está online e monitorando com Pré-Alertas!"
+    return "🤖 O Analista Assertivo está online e monitorando com Pré-Alertas! 100%"
 
 def iniciar_servidor_web():
     porta = int(os.environ.get("PORT", 5000))
@@ -40,10 +40,15 @@ def obter_coluna(numero):
 
 def enviar_sinal_telegram(mensagem):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"} # Mantendo compatibilidade com payload padrão fixo
-    payload["text"] = mensagem
+    # CORRIGIDO: Alterado 'message' para 'mensagem' para evitar o travamento interno
+    payload = {
+        "chat_id": CHAT_ID, 
+        "text": mensagem, 
+        "parse_mode": "Markdown"
+    }
     try:
-        requests.post(url, json=payload, timeout=10)
+        resposta = requests.post(url, json=payload, timeout=10)
+        print(f"🔹 Resposta do Telegram: {resposta.status_code} - {resposta.text}")
     except Exception as e:
         print(f"❌ Erro ao conectar ao Telegram: {e}")
 
