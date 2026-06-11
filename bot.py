@@ -3,37 +3,59 @@ import time
 import requests
 from flask import Flask
 from threading import Thread
+from bs4 import BeautifulSoup
 
 app = Flask('')
 
-# URL de um Proxy gratuito para tentar burlar o bloqueio
-# Em produção, proxies gratuitos caem muito, mas serve para testar
-PROXIES = {
-    'http': 'http://185.162.229.185:80', 
-    'https': 'http://185.162.229.185:80'
-}
+# Configurações do Railway
+TOKEN = os.environ.get("TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
+URL = "https://tipminer.com/br/historico/evolution/roleta-ao-vivo"
+
+def enviar_telegram(msg):
+    try:
+        url_api = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        requests.post(url_api, json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, timeout=10)
+    except: pass
 
 def monitorar():
-    print("🤖 Robô com Proxy iniciado!")
+    print("🤖 Robô de Análise em Execução!")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    }
+    
+    ultimo_numero = ""
+    
     while True:
         try:
-            # Tenta acessar via Proxy
-            r = requests.get("https://tipminer.com/br/historico/evolution/roleta-ao-vivo", 
-                             proxies=PROXIES, timeout=10)
-            
+            r = requests.get(URL, headers=headers, timeout=15)
             if r.status_code == 200:
-                print("✅ Acesso via Proxy funcionando!")
+                soup = BeautifulSoup(r.text, 'html.parser')
+                
+                # Esta parte busca o último número da roleta baseado na estrutura do site
+                # O seletor '.ball' é comum no TipMiner para identificar os números
+                elementos = soup.select('.ball')
+                
+                if elementos:
+                    novo_numero = elementos[0].text.strip()
+                    
+                    if novo_numero != ultimo_numero:
+                        ultimo_numero = novo_numero
+                        msg = f"🎰 <b>Novo Número:</b> {novo_numero}"
+                        enviar_telegram(msg)
+                        print(f"✅ Giro detectado: {novo_numero}")
             else:
-                print(f"❌ Proxy falhou com status {r.status_code}")
+                print(f"⚠️ Acesso bloqueado (Status {r.status_code})")
                 
         except Exception as e:
-            print(f"Erro de conexão: {e}")
-        time.sleep(60)
+            print(f"Erro na análise: {e}")
+            
+        time.sleep(30) # Monitora a cada 30 segundos
 
 @app.route('/')
 def home():
-    return "Bot Online"
+    return "Bot de análise online"
 
 if __name__ == "__main__":
     Thread(target=monitorar, daemon=True).start()
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))
