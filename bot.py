@@ -1,18 +1,19 @@
+import os
 import requests
 from flask import Flask
-import threading
-import time
+from threading import Thread
 
 app = Flask(__name__)
 
+# --- TESTE DE CONEXÃO ---
 def testar_conexao():
     print("--- TESTANDO CONEXÃO EXTERNA ---")
     try:
-        # Vamos tentar conectar no Google primeiro para ver se o Render permite acesso externo
+        # Teste com Google
         res = requests.get("https://www.google.com", timeout=10)
         print(f"DEBUG: Conexão Google - Status: {res.status_code}")
         
-        # Agora tentamos a roleta
+        # Teste com Roleta
         url = "https://auto-roulette-vip.p.rapidapi.com/cache/5"
         headers = {"x-rapidapi-key": "d76bfabe1dmsh4cf05a08aa6bd87p18eac2jsn84a37e3beb09"}
         res2 = requests.get(url, headers=headers, timeout=15)
@@ -21,12 +22,12 @@ def testar_conexao():
     except Exception as e:
         print(f"DEBUG: Erro na conexão: {e}")
 
-threading.Thread(target=testar_conexao, daemon=True).start()
+# Inicia o teste em background
+Thread(target=testar_conexao, daemon=True).start()
 
 @app.route('/')
 def index():
     return "Testando..."
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
