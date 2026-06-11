@@ -1,69 +1,51 @@
 import os
 import time
 import requests
+import random
 from flask import Flask
 from threading import Thread
 
 app = Flask('')
 
-# CONFIGURAÇÕES
 TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
 CHAT_ID = "-1003769604348"
-# Esta é a URL da API que o TipMiner consulta para obter os dados
-API_URL = "https://tipminer.com/api/v2/evolution/roulette/history?limit=20"
+# Usando a versão mobile do site, que costuma ser menos protegida
+URL = "https://m.tipminer.com/br/historico/evolution/roleta-ao-vivo"
 
-VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
-ultimo_id_processado = None
+# Lista de User-Agents para variar e enganar o bloqueio
+USER_AGENTS = [
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1",
+    "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Mobile Safari/537.36"
+]
 
-def enviar_telegram(mensagem):
+def enviar_telegram(msg):
     try:
-        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-        requests.post(url, json={"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}, timeout=10)
-    except:
-        pass
-
-def analisar_estrategia(historico):
-    # Logica simplificada de cores para exemplo
-    if not historico: return
-    
-    ultimo = historico[0]
-    cor = "VERMELHO" if ultimo in VERMELHOS else "PRETO"
-    
-    # Exemplo de envio de teste
-    msg = f"🎰 *Último giro:* {ultimo} ({cor})"
-    enviar_telegram(msg)
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                      json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"}, timeout=10)
+    except: pass
 
 def monitorar():
-    global ultimo_id_processado
-    print("🤖 Robô Autônomo via API iniciado!")
-    
+    print("🤖 Robô em modo 'Stealth' iniciado!")
     while True:
         try:
-            headers = {"User-Agent": "Mozilla/5.0"}
-            # Faz a requisição direta para a API de dados
-            r = requests.get(API_URL, headers=headers, timeout=10)
-            dados = r.json()
+            headers = {"User-Agent": random.choice(USER_AGENTS)}
+            # O truque aqui é usar um timeout curto e variar o User-Agent
+            r = requests.get(URL, headers=headers, timeout=15)
             
-            # Pega o primeiro item da lista de resultados
-            if dados and 'data' in dados:
-                resultado_atual = dados['data'][0]
-                numero = resultado_atual['number']
-                id_rodada = resultado_atual['id']
+            if r.status_code == 200:
+                print("✅ Conexão estabelecida com sucesso.")
+            else:
+                print(f"⚠️ Acesso limitado. Status: {r.status_code}")
                 
-                if id_rodada != ultimo_id_processado:
-                    ultimo_id_processado = id_rodada
-                    print(f"🎰 Novo giro detectado: {numero}")
-                    analisar_estrategia([numero])
         except Exception as e:
-            print(f"Erro de leitura: {e}")
+            print(f"Erro de rede: {e}")
             
-        time.sleep(15)
+        time.sleep(60) # Aumentamos o tempo para evitar banimento do IP do Render
 
 @app.route('/')
 def home():
-    return "🤖 Sistema de Análise Autônomo Online."
+    return "Bot Online"
 
 if __name__ == "__main__":
     Thread(target=monitorar, daemon=True).start()
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
