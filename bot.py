@@ -3,38 +3,60 @@ import time
 import requests
 from flask import Flask
 from threading import Thread
-from bs4 import BeautifulSoup
 
 app = Flask('')
 
-# Configurações do Railway
 TOKEN = os.environ.get("TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
-URL = "https://tipminer.com/br/historico/evolution/roleta-ao-vivo"
+# URL de API interna que o próprio site utiliza para buscar os resultados
+URL_API = "https://tipminer.com/api/v1/evolution/roleta-ao-vivo/history"
 
 def enviar_telegram(msg):
     try:
-        url_api = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-        requests.post(url_api, json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, timeout=10)
+        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
+                      json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"}, timeout=10)
     except: pass
 
 def monitorar():
-    print("🤖 Robô de Análise em Execução!")
+    print("🤖 Monitor de API Ativado!")
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Referer": "https://tipminer.com/br/historico/evolution/roleta-ao-vivo"
     }
     
-    ultimo_numero = ""
+    ultimo_id = None
     
     while True:
         try:
-            r = requests.get(URL, headers=headers, timeout=15)
+            r = requests.get(URL_API, headers=headers, timeout=15)
             if r.status_code == 200:
-                soup = BeautifulSoup(r.text, 'html.parser')
+                data = r.json()
+                # Acessa o primeiro item da lista de resultados
+                if data and len(data) > 0:
+                    giro = data[0]
+                    numero = giro.get("number")
+                    giro_id = giro.get("id")
+                    
+                    if giro_id != ultimo_id:
+                        ultimo_id = giro_id
+                        msg = f"🎰 <b>Novo Giro:</b> {numero}"
+                        enviar_telegram(msg)
+                        print(f"✅ Giro detectado: {numero} (ID: {giro_id})")
+            else:
+                print(f"⚠️ API retornou status {r.status_code}")
                 
-                # Esta parte busca o último número da roleta baseado na estrutura do site
-                # O seletor '.ball' é comum no TipMiner para identificar os números
-                elementos = soup.select('.ball')
+        except Exception as e:
+            print(f"Erro na API: {e}")
+            
+        time.sleep(20)
+
+@app.route('/')
+def home():
+    return "Bot de API Online"
+
+if __name__ == "__main__":
+    Thread(target=monitorar, daemon=True).start()
+    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 8080)))                elementos = soup.select('.ball')
                 
                 if elementos:
                     novo_numero = elementos[0].text.strip()
