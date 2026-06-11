@@ -1,86 +1,63 @@
 import os
 import time
 import requests
-from bs4 import BeautifulSoup
 from flask import Flask
 from threading import Thread
 
-# === CONFIGURAÇÕES ===
-TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
-CHAT_ID = "-1003769604348"
-URL_TIPMINER = "https://tipminer.com/br/historico/evolution/roleta-ao-vivo"
-VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
-
 app = Flask('')
 
-# === FUNÇÕES DE APOIO ===
-def obter_cor(numero):
-    if numero == 0: return "ZERO"
-    return "VERMELHO" if numero in VERMELHOS else "PRETO"
+# CONFIGURAÇÕES
+TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
+CHAT_ID = "-1003769604348"
+# Esta é a URL da API que o TipMiner consulta para obter os dados
+API_URL = "https://tipminer.com/api/v2/evolution/roulette/history?limit=20"
 
-def obter_coluna(numero):
-    if numero == 0: return 0
-    if numero in [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34]: return 1
-    if numero in [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35]: return 2
-    return 3
+VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
+ultimo_id_processado = None
 
 def enviar_telegram(mensagem):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}
     try:
-        requests.post(url, json=payload, timeout=10)
-    except Exception as e:
-        print(f"Erro Telegram: {e}")
+        url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+        requests.post(url, json={"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}, timeout=10)
+    except:
+        pass
 
-# === LÓGICA DE ANÁLISE ===
-def analisar_dados(historico):
-    print(f"📊 Analisando: {historico[:10]}")
+def analisar_estrategia(historico):
+    # Logica simplificada de cores para exemplo
+    if not historico: return
     
-    # 🎨 Cores
-    cores = [obter_cor(n) for n in historico if obter_cor(n) != "ZERO"]
-    if cores:
-        cor_atual, seq = cores[0], 0
-        for c in cores:
-            if c == cor_atual: seq += 1
-            else: break
-        
-        if seq in [2, 3, 4, 5]:
-            cor_oposta = "PRETO" if cor_atual == "VERMELHO" else "VERMELHO"
-            tipo = "🚨 SINAL" if seq >= 3 else "👀 PRE-ALERTA"
-            msg = f"{tipo}: Apostar no {cor_oposta} (Sequência de {seq} em {cor_atual})"
-            enviar_telegram(msg)
+    ultimo = historico[0]
+    cor = "VERMELHO" if ultimo in VERMELHOS else "PRETO"
+    
+    # Exemplo de envio de teste
+    msg = f"🎰 *Último giro:* {ultimo} ({cor})"
+    enviar_telegram(msg)
 
-    # 📊 Colunas
-    for col in [1, 2, 3]:
-        ausencia = 0
-        for n in historico:
-            if n == 0: ausencia += 1; continue
-            if obter_coluna(n) != col: ausencia += 1
-            else: break
-        
-        if ausencia in [2, 3, 4, 5]:
-            tipo = "🚨 SINAL" if ausencia >= 3 else "👀 PRE-ALERTA"
-            msg = f"{tipo}: Coluna {col} está há {ausencia} rodadas sem sair."
-            enviar_telegram(msg)
-
-# === MOTOR DE LEITURA (AUTÔNOMO) ===
 def monitorar():
-    ultimo_historico = []
-    print("🤖 Robô Autônomo Iniciado!")
+    global ultimo_id_processado
+    print("🤖 Robô Autônomo via API iniciado!")
     
     while True:
         try:
-            r = requests.get(URL_TIPMINER, headers={"User-Agent": "Mozilla/5.0"}, timeout=15)
-            soup = BeautifulSoup(r.text, 'html.parser')
-            numeros = [int(div.text) for div in soup.find_all('div', class_='round-number') if div.text.isdigit()]
+            headers = {"User-Agent": "Mozilla/5.0"}
+            # Faz a requisição direta para a API de dados
+            r = requests.get(API_URL, headers=headers, timeout=10)
+            dados = r.json()
             
-            if numeros and numeros != ultimo_historico:
-                ultimo_historico = numeros
-                analisar_dados(numeros)
+            # Pega o primeiro item da lista de resultados
+            if dados and 'data' in dados:
+                resultado_atual = dados['data'][0]
+                numero = resultado_atual['number']
+                id_rodada = resultado_atual['id']
+                
+                if id_rodada != ultimo_id_processado:
+                    ultimo_id_processado = id_rodada
+                    print(f"🎰 Novo giro detectado: {numero}")
+                    analisar_estrategia([numero])
         except Exception as e:
-            print(f"Erro na leitura: {e}")
+            print(f"Erro de leitura: {e}")
             
-        time.sleep(20)
+        time.sleep(15)
 
 @app.route('/')
 def home():
@@ -88,4 +65,5 @@ def home():
 
 if __name__ == "__main__":
     Thread(target=monitorar, daemon=True).start()
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
