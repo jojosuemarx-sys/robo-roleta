@@ -11,10 +11,9 @@ TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
 CHAT_ID = "-1003769604348"
 VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
 
-# === URL LIVE CAPTURADA DA SUA SUPERBET ===
-WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22flhq3ykzpfgd6208395e709774d704ca314de4a8d2af19a690c97afb23776&instance=ojwqol-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73511.62580-5bb4093ee3-r2"
+# === URL LIVE ATUALIZADA DO SEU PRINT (image_58fc15.jpg) ===
+WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22eul53gyeantmm8f094b0c8f65f4519ddba4c03ba579637fa575463aed4dc&instance=2sjlz-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73511.62580-5bb4093ee3-r2"
 
-# Guardar o último histórico para evitar sinais duplicados do mesmo giro
 ultimo_historico_analisado = []
 
 # === MINI SERVIDOR WEB PARA O RENDER ===
@@ -22,7 +21,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "🤖 O Analista Assertivo está online e conectado via WebSocket na Nuvem!"
+    return "🤖 O Analista Assertivo está online e conectado via WebSocket!"
 
 def iniciar_servidor_web():
     porta = int(os.environ.get("PORT", 5000))
@@ -41,13 +40,13 @@ def obter_coluna(numero):
 
 def enviar_sinal_telegram(mensagem):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    payload = {"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}
     try:
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
         print(f"❌ Erro ao conectar ao Telegram: {e}")
 
-# === MOTOR DE ANÁLISE COMPATÍVEL ===
+# === MOTOR DE ANÁLISE ===
 def analisar_dados(historico_numeros):
     if not historico_numeros: return
     
@@ -92,15 +91,13 @@ def on_message(ws, message):
     try:
         dados = json.loads(message)
         
-        # Monitora exclusivamente o evento de novos resultados da roleta
-        if dados.get("type") == "rouletto.recentResults":
+        # Filtro exato com o nome do evento coletado do seu painel
+        if dados.get("type") == "roulette.recentResults":
             recent_results = dados["args"]["recentResults"]
             
             if recent_results:
-                # Transforma a lista de strings do servidor da evolução em inteiros [int]
-                historico_inteiros = [int(n) for n in recent_results if n.isdigit()]
+                historico_inteiros = [int(n) for n in recent_results if str(n).isdigit()]
                 
-                # Só analisa se o histórico realmente mudou (novo giro aconteceu)
                 if historico_inteiros != ultimo_historico_analisado:
                     ultimo_historico_analisado = historico_inteiros
                     analisar_dados(historico_inteiros)
@@ -130,7 +127,7 @@ def iniciar_websocket():
     ws.run_forever()
 
 if __name__ == "__main__":
-    # 1. Liga o mini-servidor para enganar o Render em segundo plano
+    # 1. Liga o mini-servidor Flask em segundo plano
     t_web = threading.Thread(target=iniciar_servidor_web)
     t_web.daemon = True
     t_web.start()
