@@ -20,7 +20,9 @@ def motor():
             }
             res = requests.get(url, headers=headers, timeout=10).json()
             
-            # Captura o número
+            # DIAGNÓSTICO: Vou imprimir a resposta bruta no log
+            print(f"DEBUG API: {res}")
+            
             if 'data' in res and len(res['data']) > 0:
                 novo_num = int(res['data'][0]['result'])
                 if not historico or historico[-1] != novo_num:
@@ -28,23 +30,18 @@ def motor():
                     if len(historico) > 20: historico.pop(0)
                     print(f"✅ NOVO NÚMERO: {novo_num}")
             else:
-                print("⚠️ API retornou dados vazios ou formato diferente")
+                print("⚠️ API retornou dados vazios.")
                 
         except Exception as e:
             print(f"⚠️ Erro no motor: {e}")
             
-        time.sleep(10)
+        time.sleep(15)
 
-# Inicia a thread antes de qualquer coisa
 threading.Thread(target=motor, daemon=True).start()
 
 @app.route('/')
 def home():
-    return render_template_string("""
-        <h1>Robô Online</h1>
-        <p>Último número: {{ historico[-1] if historico else 'Lendo...' }}</p>
-        <p>Log de histórico: {{ historico }}</p>
-    """, historico=historico)
+    return render_template_string("<h1>Robô Online</h1><p>Último: {{ historico[-1] if historico else 'Aguardando...' }}</p>", historico=historico)
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
