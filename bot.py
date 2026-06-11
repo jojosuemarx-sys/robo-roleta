@@ -11,8 +11,8 @@ TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
 CHAT_ID = "-1003769604348"
 VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
 
-# === URL LIVE DO WEBSOCKET ===
-WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22ilw4hgyebjfkxedafc60e9716d2ed9d93c9a2b035e6371002b918452e7b50&instance=brgxgz-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73611.62580-5bb4093ee3-r2"
+# === URL LIVE ATUALIZADA (SESSÃO NOVA DAS 22:42) ===
+WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22flhq3ykzpfgd6208395e709774d704ca314e4a8d2af19a69c97afb23776&instance=ojwqol-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73611.62580-5bb4093ee3-r2"
 
 ultimo_historico_analisado = []
 
@@ -21,7 +21,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "🤖 O Analista Assertivo está online e monitorando com Pré-Alertas! 100%"
+    return "🤖 O Analista Assertivo está online e monitorando com Pré-Alertas!"
 
 def iniciar_servidor_web():
     porta = int(os.environ.get("PORT", 5000))
@@ -40,7 +40,6 @@ def obter_coluna(numero):
 
 def enviar_sinal_telegram(mensagem):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    # CORRIGIDO: Alterado 'message' para 'mensagem' para evitar o travamento interno
     payload = {
         "chat_id": CHAT_ID, 
         "text": mensagem, 
