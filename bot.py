@@ -11,8 +11,8 @@ TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
 CHAT_ID = "-1003769604348"
 VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
 
-# === URL LIVE ATUALIZADA (image_58fc15.jpg) ===
-WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22eul53gyeantmm8f094b0c8f65f4519ddba4c03ba579637fa575463aed4dc&instance=2sjlz-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73511.62580-5bb4093ee3-r2"
+# === URL LIVE ATUALIZADA (image_58a222.png) ===
+WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22flhq3ykzpfgd6208395e709774d704ca314de4a8d2af19a690c97afb23776&instance=ojwqol-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73511.62580-5bb4093ee3-r2"
 
 ultimo_historico_analisado = []
 
