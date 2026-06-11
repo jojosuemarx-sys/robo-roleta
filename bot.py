@@ -1,46 +1,34 @@
 import os
 import time
 import requests
-import random
 from flask import Flask
 from threading import Thread
 
 app = Flask('')
 
-TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
-CHAT_ID = "-1003769604348"
-# Usando a versão mobile do site, que costuma ser menos protegida
-URL = "https://m.tipminer.com/br/historico/evolution/roleta-ao-vivo"
-
-# Lista de User-Agents para variar e enganar o bloqueio
-USER_AGENTS = [
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/96.0.4664.45 Mobile Safari/537.36"
-]
-
-def enviar_telegram(msg):
-    try:
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", 
-                      json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"}, timeout=10)
-    except: pass
+# URL de um Proxy gratuito para tentar burlar o bloqueio
+# Em produção, proxies gratuitos caem muito, mas serve para testar
+PROXIES = {
+    'http': 'http://185.162.229.185:80', 
+    'https': 'http://185.162.229.185:80'
+}
 
 def monitorar():
-    print("🤖 Robô em modo 'Stealth' iniciado!")
+    print("🤖 Robô com Proxy iniciado!")
     while True:
         try:
-            headers = {"User-Agent": random.choice(USER_AGENTS)}
-            # O truque aqui é usar um timeout curto e variar o User-Agent
-            r = requests.get(URL, headers=headers, timeout=15)
+            # Tenta acessar via Proxy
+            r = requests.get("https://tipminer.com/br/historico/evolution/roleta-ao-vivo", 
+                             proxies=PROXIES, timeout=10)
             
             if r.status_code == 200:
-                print("✅ Conexão estabelecida com sucesso.")
+                print("✅ Acesso via Proxy funcionando!")
             else:
-                print(f"⚠️ Acesso limitado. Status: {r.status_code}")
+                print(f"❌ Proxy falhou com status {r.status_code}")
                 
         except Exception as e:
-            print(f"Erro de rede: {e}")
-            
-        time.sleep(60) # Aumentamos o tempo para evitar banimento do IP do Render
+            print(f"Erro de conexão: {e}")
+        time.sleep(60)
 
 @app.route('/')
 def home():
