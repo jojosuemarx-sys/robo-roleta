@@ -1,21 +1,28 @@
 import os
+import json
 import time
 import requests
 import threading
+import websocket
 from flask import Flask
-from bs4 import BeautifulSoup
 
 # === CONFIGURAÇÕES OFICIAIS DO TELEGRAM ===
 TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
 CHAT_ID = "-1003769604348"
 VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
 
+# === URL LIVE CAPTURADA DA SUA SUPERBET ===
+WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22flhq3ykzpfgd6208395e709774d704ca314de4a8d2af19a690c97afb23776&instance=ojwqol-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73511.62580-5bb4093ee3-r2"
+
+# Guardar o último histórico para evitar sinais duplicados do mesmo giro
+ultimo_historico_analisado = []
+
 # === MINI SERVIDOR WEB PARA O RENDER ===
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "🤖 O Analista Assertivo está online 24h na Nuvem!"
+    return "🤖 O Analista Assertivo está online e conectado via WebSocket na Nuvem!"
 
 def iniciar_servidor_web():
     porta = int(os.environ.get("PORT", 5000))
@@ -34,45 +41,17 @@ def obter_coluna(numero):
 
 def enviar_sinal_telegram(mensagem):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}
+    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
     try:
-        requests.post(url, json=payload)
-    except:
-        print("❌ Erro ao conectar ao Telegram")
-
-# === RASPADOR DE DADOS EM TEMPO REAL (WEB SCRAPING) ===
-def puxar_numeros_ao_vivo():
-    """Acessa a página de resultados públicos e extrai os últimos giros"""
-    url = "https:// casino-r.com/resultados-roleta-brasileira" # Exemplo de endpoint estático estável
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-    
-    try:
-        # Faz a leitura da página
-        resposta = requests.get(url, headers=headers, timeout=10)
-        if resposta.status_code == 200:
-            soup = BeautifulSoup(resposta.text, 'html.parser')
-            
-            # Busca os elementos onde os números ficam guardados na tabela do site
-            elementos = soup.find_all('div', class_='rolette-number-box')
-            
-            numeros_reais = []
-            for item in elementos[:15]: # Pega os últimos 15 números gerados
-                texto = item.text.strip()
-                if texto.isdigit():
-                    numeros_reais.append(int(texto))
-            
-            if numeros_reais:
-                print(f"📊 Giros capturados com sucesso: {numeros_reais}")
-                return numeros_reais
+        requests.post(url, json=payload, timeout=10)
     except Exception as e:
-        print(f"⚠️ Falha ao raspar a página, usando histórico de segurança: {e}")
-    
-    # Histórico reserva caso o site alvo fique instável momentaneamente
-    return [32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30]
+        print(f"❌ Erro ao conectar ao Telegram: {e}")
 
-# === MOTORES DE ANÁLISE ===
+# === MOTOR DE ANÁLISE COMPATÍVEL ===
 def analisar_dados(historico_numeros):
     if not historico_numeros: return
+    
+    print(f"📊 Analisando sequência atual: {historico_numeros}")
     
     # 🎨 Análise de Cores (3, 5, 7 repetições | Até 2 Gales)
     cores_validas = [obter_cor(n) for n in historico_numeros if obter_cor(n) != "ZERO"]
@@ -107,28 +86,54 @@ def analisar_dados(historico_numeros):
             msg_col = f"{tipo_col} - {ausencia} AUSÊNCIAS ⚠️\n\n🎰 *Mesa:* Roleta Brasileira\n📊 *Assertividade:* {assertividade_col} (Até 3 Gales)\n🎯 *Entrada:* Apostar na *COLUNA {coluna_alvo}*\n🛡️ *Proteção:* Cobrir o Zero (0)"
             enviar_sinal_telegram(msg_col)
 
-# === LOOP DE MONITORAMENTO INFINITO ===
-def monitorar_roleta_loop():
-    print("🚀 [SISTEMA] Monitoramento em tempo real iniciado...")
-    ultimo_historico = []
-    
-    while True:
-        try:
-            historico_atual = puxar_numeros_ao_vivo()
+# === EVENTOS E ESCUTA DO WEBSOCKET ===
+def on_message(ws, message):
+    global ultimo_historico_analisado
+    try:
+        dados = json.loads(message)
+        
+        # Monitora exclusivamente o evento de novos resultados da roleta
+        if dados.get("type") == "rouletto.recentResults":
+            recent_results = dados["args"]["recentResults"]
             
-            # Só analisa se os números mudaram (evita mandar sinais duplicados do mesmo giro)
-            if historico_atual != ultimo_historico:
-                analizar_dados(historico_atual)
-                ultimo_historico = historico_atual
+            if recent_results:
+                # Transforma a lista de strings do servidor da evolução em inteiros [int]
+                historico_inteiros = [int(n) for n in recent_results if n.isdigit()]
                 
-            time.sleep(15) # Checa novos giros a cada 15 segundos
-        except Exception as e:
-            print(f"Erro no loop de raspagem: {e}")
-            time.sleep(5)
+                # Só analisa se o histórico realmente mudou (novo giro aconteceu)
+                if historico_inteiros != ultimo_historico_analisado:
+                    ultimo_historico_analisado = historico_inteiros
+                    analisar_dados(historico_inteiros)
+                    
+    except Exception as e:
+        print(f"Erro ao processar mensagem do servidor: {e}")
+
+def on_error(ws, error):
+    print(f"❌ Erro na conexão do WebSocket: {error}")
+
+def on_close(ws, close_status_code, close_msg):
+    print("🔌 Conexão com a Superbet fechada. Reconectando em 5 segundos...")
+    time.sleep(5)
+    iniciar_websocket()
+
+def on_open(ws):
+    print("🤖 Conexão direta estabelecida com o servidor da Superbet! Escutando giros ao vivo...")
+
+def iniciar_websocket():
+    ws = websocket.WebSocketApp(
+        WS_URL,
+        on_open=on_open,
+        on_message=on_message,
+        on_error=on_error,
+        on_close=on_close
+    )
+    ws.run_forever()
 
 if __name__ == "__main__":
+    # 1. Liga o mini-servidor para enganar o Render em segundo plano
     t_web = threading.Thread(target=iniciar_servidor_web)
     t_web.daemon = True
     t_web.start()
     
-    monitorar_roleta_loop()
+    # 2. Inicia o loop eterno do WebSocket escutando a roleta
+    iniciar_websocket()
