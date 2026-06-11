@@ -11,8 +11,8 @@ TOKEN = "8730429065:AAGq1CORU8-uVeseK06DxmuRhSbEqU77jus"
 CHAT_ID = "-1003769604348"
 VERMELHOS = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
 
-# === URL LIVE ATUALIZADA (image_58a222.png) ===
-WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22flhq3ykzpfgd6208395e709774d704ca314de4a8d2af19a690c97afb23776&instance=ojwqol-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73511.62580-5bb4093ee3-r2"
+# === URL LIVE ATUALIZADA ENVIADA AGORA ===
+WS_URL = "wss://superbetbr.evo-games.com/public/roulette/player/game/PorROU0000000001/socket?messageFormat=json&EVOSESSIONID=t22dkq3wxcmqcf42t22ilw4hgyebjfkxedafc60e9716d2ed9d93c9a2b035e6371002b918452e7b50&instance=brgxgz-t22dkq3wxcmqcf42-PorROU0000000001&client_version=6.20260610.73611.62580-5bb4093ee3-r2"
 
 ultimo_historico_analisado = []
 
@@ -40,7 +40,8 @@ def obter_coluna(numero):
 
 def enviar_sinal_telegram(mensagem):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": mensagem, "parse_mode": "Markdown"}
+    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"} # Mantendo compatibilidade com payload padrão fixo
+    payload["text"] = mensagem
     try:
         requests.post(url, json=payload, timeout=10)
     except Exception as e:
