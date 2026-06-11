@@ -6,11 +6,9 @@ from threading import Thread
 
 app = Flask(__name__)
 
-# Variável global para armazenar os logs
-ultimo_log = "Iniciando monitoramento..."
-
-def motor_leitura():
-    global ultimo_log
+# --- MOTOR DE LEITURA ROBUSTO ---
+def rodar_motor():
+    print("--- MOTOR INICIANDO TENTATIVA DE LEITURA ---")
     while True:
         try:
             url = "https://auto-roulette-vip.p.rapidapi.com/cache/5"
@@ -18,25 +16,23 @@ def motor_leitura():
                 "x-rapidapi-key": os.environ.get("RAPIDAPI_KEY", "d76bfabe1dmsh4cf05a08aa6bd87p18eac2jsn84a37e3beb09"),
                 "x-rapidapi-host": "auto-roulette-vip.p.rapidapi.com"
             }
-            res = requests.get(url, headers=headers, timeout=10)
-            status = res.status_code
-            conteudo = res.text[:100] # Pega um pedaço para confirmar
+            # Faz a requisição
+            response = requests.get(url, headers=headers, timeout=15)
             
-            ultimo_log = f"Status: {status} | Resposta: {conteudo}"
-            print(f"DEBUG: {ultimo_log}")
+            # Imprime tudo no log para vermos o que está acontecendo
+            print(f"DEBUG: Status={response.status_code} | Resposta={response.text[:100]}")
             
         except Exception as e:
-            ultimo_log = f"Erro: {str(e)}"
-            print(ultimo_log)
+            print(f"DEBUG: Erro ao conectar: {e}")
             
-        time.sleep(20) # Espera 20 segundos antes da próxima leitura
+        time.sleep(30) # Aguarda 30 segundos
 
-# Inicia o motor em uma thread separada e persistente
-Thread(target=motor_leitura, daemon=True).start()
+# Inicia o motor ANTES de rodar o app
+Thread(target=rodar_motor, daemon=True).start()
 
 @app.route('/')
 def home():
-    return f"<h1>Monitor de Roleta VIP</h1><p>{ultimo_log}</p>"
+    return "O robô está rodando. Verifique o LOG do Render para ver a resposta da API."
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
