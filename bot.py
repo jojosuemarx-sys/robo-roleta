@@ -15,7 +15,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "🤖 O Analista Assertivo está online 24h na Nuvem! UP!"
+    return "🤖 O Analista Assertivo está online 24h na Nuvem!"
 
 def iniciar_servidor_web():
     porta = int(os.environ.get("PORT", 5000))
